@@ -2,45 +2,120 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>URBANO · Editor de diseño</title>
 <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
 <style>
-  body{margin:0;font-family:sans-serif;background:#0b0d0a}
+  :root{
+    --bg:#0b0d0a; --surface:#15170f; --line:#2a2e1e;
+    --text:#eceee6; --muted:#8f9484; --neon:#c6ff21; --neon-dim:#8fb818;
+  }
+  body{margin:0;font-family:sans-serif;background:var(--bg)}
   #topbar{
-    background:#15170f;border-bottom:1px solid #2a2e1e;
-    padding:12px 20px;display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface);border-bottom:1px solid var(--line);
+    padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
-  #topbar h1{font-size:16px;color:#eceee6;margin:0;font-family:sans-serif}
-  #topbar h1 span{color:#c6ff21}
+  #topbar h1{font-size:15px;color:var(--text);margin:0}
+  #topbar h1 span{color:var(--neon)}
+  .tb-btns{display:flex;gap:8px}
   #topbar button{
-    background:#c6ff21;color:#0b0d0a;border:none;padding:9px 16px;
-    font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+    border:none;padding:9px 14px;font-weight:700;font-size:11px;
+    letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
   }
-  #topbar button:hover{background:#8fb818}
-  #gjs{height:calc(100vh - 52px)}
+  .btn-neon{background:var(--neon);color:#0b0d0a}
+  .btn-neon:hover{background:var(--neon-dim)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line) !important}
+  .btn-ghost:hover{color:#ff3b3b;border-color:#ff3b3b !important}
+  #gjs{height:calc(100vh - 50px);border:none}
+
+  /* Tema oscuro para la interfaz de GrapesJS */
+  .gjs-one-bg{background-color:var(--surface)}
+  .gjs-two-color{color:var(--text)}
+  .gjs-three-bg{background-color:var(--neon);color:#0b0d0a}
+  .gjs-four-color, .gjs-four-color-h:hover{color:var(--neon)}
+  .gjs-pn-btn.gjs-pn-active{background:rgba(198,255,33,.15);color:var(--neon)}
+  .gjs-block{color:var(--text);border:1px solid var(--line);background:#1c1f14;min-height:70px}
+  .gjs-block:hover{border-color:var(--neon-dim)}
+  .gjs-block-label{font-size:11px}
+  .gjs-category-title, .gjs-sm-sector-title, .gjs-layer-title, .gjs-traits-label{
+    background:#1c1f14;border-bottom:1px solid var(--line)
+  }
 </style>
 </head>
 <body>
 
 <div id="topbar">
   <h1>URBANO <span>·</span> Editor de diseño</h1>
-  <button onclick="exportarHTML()">Exportar HTML</button>
+  <div class="tb-btns">
+    <button class="btn-ghost" onclick="reiniciarDiseno()">Reiniciar</button>
+    <button class="btn-neon" onclick="exportarHTML()">Exportar HTML</button>
+  </div>
 </div>
 <div id="gjs"></div>
 
 <script src="https://unpkg.com/grapesjs"></script>
 <script>
+const DISENO_INICIAL = `
+  <section style="padding:70px 24px 50px;text-align:center;background:#0b0d0a;border-bottom:1px solid #2a2e1e">
+    <span style="display:inline-block;font-family:monospace;font-size:11px;letter-spacing:3px;color:#c6ff21;border:1px solid #c6ff21;padding:5px 12px;margin-bottom:22px">SHOP · MANIZALES</span>
+    <h1 style="font-family:sans-serif;font-weight:900;text-transform:uppercase;font-size:60px;line-height:0.95;color:#eceee6;margin:0">ESTILO<br><span style="color:#c6ff21">SIN FILTRO</span></h1>
+    <p style="color:#8f9484;max-width:480px;margin:20px auto 0;font-size:15px">Doble clic para editar cualquier texto. Arrastra bloques desde el panel derecho (icono de cuadros). Selecciona un elemento y usa el pincel para cambiar colores y estilos.</p>
+  </section>
+`;
+
 const editor = grapesjs.init({
   container: '#gjs',
   height: '100%',
   fromElement: false,
-  storageManager: { type: 'local', autosave: true, stepsBeforeSave: 1 },
+  // Guarda tu avance automáticamente en este navegador
+  storageManager: { type: 'local', autosave: true, autoload: true, stepsBeforeSave: 1 },
+  // OJO: no se tocan los paneles por defecto — ahí viven bloques, estilos, capas y ajustes
+  deviceManager: {
+    devices: [
+      { name: 'Escritorio', width: '' },
+      { name: 'Celular', width: '380px', widthMedia: '480px' }
+    ]
+  },
   blockManager: {
     blocks: [
+      /* ===== Bloques básicos ===== */
       {
-        id: 'hero-urbano',
-        label: 'Hero URBANO',
-        category: 'URBANO',
+        id: 'seccion', label: 'Sección', category: 'Básicos',
+        content: `<section style="padding:50px 24px;background:#0b0d0a"><div style="max-width:960px;margin:0 auto"></div></section>`
+      },
+      {
+        id: 'texto', label: 'Texto', category: 'Básicos',
+        content: `<p style="color:#eceee6;font-family:sans-serif;font-size:15px;line-height:1.7">Doble clic para editar este texto.</p>`
+      },
+      {
+        id: 'titulo', label: 'Título', category: 'Básicos',
+        content: `<h2 style="color:#eceee6;font-family:sans-serif;text-transform:uppercase;font-size:30px;margin:0">TÍTULO</h2>`
+      },
+      {
+        id: 'imagen', label: 'Imagen', category: 'Básicos',
+        content: { type: 'image', style: { 'max-width': '100%' } },
+        activate: true
+      },
+      {
+        id: 'boton', label: 'Botón / Enlace', category: 'Básicos',
+        content: `<a href="#" style="display:inline-block;background:#c6ff21;color:#0b0d0a;padding:13px 24px;font-weight:700;font-family:sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none">Botón</a>`
+      },
+      {
+        id: 'dos-columnas', label: '2 Columnas', category: 'Básicos',
+        content: `
+          <div style="display:flex;gap:20px;flex-wrap:wrap;padding:24px;max-width:960px;margin:0 auto">
+            <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 1</div>
+            <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 2</div>
+          </div>`
+      },
+      {
+        id: 'espacio', label: 'Espaciador', category: 'Básicos',
+        content: `<div style="height:40px"></div>`
+      },
+
+      /* ===== Bloques URBANO ===== */
+      {
+        id: 'hero-urbano', label: 'Hero URBANO', category: 'URBANO',
         content: `
           <section style="padding:70px 24px 50px;text-align:center;background:#0b0d0a;border-bottom:1px solid #2a2e1e">
             <span style="display:inline-block;font-family:monospace;font-size:11px;letter-spacing:3px;color:#c6ff21;border:1px solid #c6ff21;padding:5px 12px;margin-bottom:22px">SHOP · MANIZALES</span>
@@ -49,18 +124,16 @@ const editor = grapesjs.init({
           </section>`
       },
       {
-        id: 'banner-promo',
-        label: 'Banner de promoción',
-        category: 'URBANO',
+        id: 'banner-promo', label: 'Banner de promoción', category: 'URBANO',
         content: `
-          <div style="background:repeating-linear-gradient(135deg,#f4d90d 0 16px,#111 16px 32px);color:#111;text-align:center;padding:10px;font-family:monospace;font-weight:700;font-size:13px">
-            ESCRIBE AQUÍ TU PROMOCIÓN — Ej. 2X1 EN PAPELES ESTE FIN DE SEMANA
+          <div style="background:repeating-linear-gradient(135deg,#f4d90d 0 16px,#111 16px 32px)">
+            <div style="background:rgba(17,17,17,.85);color:#f4d90d;text-align:center;padding:10px;font-family:monospace;font-weight:700;font-size:13px">
+              ESCRIBE AQUÍ TU PROMOCIÓN — Ej. 2X1 EN PAPELES ESTE FIN DE SEMANA
+            </div>
           </div>`
       },
       {
-        id: 'about-urbano',
-        label: 'Sección "Sobre nosotros"',
-        category: 'URBANO',
+        id: 'about-urbano', label: 'Sección "Sobre nosotros"', category: 'URBANO',
         content: `
           <section style="padding:50px 24px;max-width:720px;margin:0 auto;text-align:center">
             <h2 style="font-family:sans-serif;text-transform:uppercase;color:#eceee6;font-size:28px">Sobre URBANO</h2>
@@ -70,9 +143,7 @@ const editor = grapesjs.init({
           </section>`
       },
       {
-        id: 'wa-boton',
-        label: 'Botón WhatsApp',
-        category: 'URBANO',
+        id: 'wa-boton', label: 'Botón WhatsApp', category: 'URBANO',
         content: `
           <div style="text-align:center;padding:30px">
             <a href="https://wa.me/573145960887" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:14px 26px;border-radius:30px;font-weight:700;font-family:sans-serif;text-decoration:none">
@@ -81,31 +152,26 @@ const editor = grapesjs.init({
           </div>`
       },
       {
-        id: 'franja-cinta',
-        label: 'Franja cinta de peligro',
-        category: 'URBANO',
+        id: 'franja-cinta', label: 'Franja cinta de peligro', category: 'URBANO',
         content: `<div style="height:14px;background:repeating-linear-gradient(135deg,#f4d90d 0 12px,#111 12px 24px)"></div>`
-      },
+      }
     ]
-  },
-  panels: { defaults: [] },
+  }
 });
 
-// Layer, style y blocks manager visibles por defecto
-editor.Panels.addPanel({
-  id: 'panel-top',
-  el: '.gjs-pn-panels',
-});
-
+// Si el lienzo está vacío (primera vez), cargar el diseño de arranque
 editor.on('load', () => {
-  editor.setComponents(`
-    <section style="padding:70px 24px 50px;text-align:center;background:#0b0d0a;border-bottom:1px solid #2a2e1e">
-      <span style="display:inline-block;font-family:monospace;font-size:11px;letter-spacing:3px;color:#c6ff21;border:1px solid #c6ff21;padding:5px 12px;margin-bottom:22px">SHOP · MANIZALES</span>
-      <h1 style="font-family:sans-serif;font-weight:900;text-transform:uppercase;font-size:60px;line-height:0.95;color:#eceee6;margin:0">ESTILO<br><span style="color:#c6ff21">SIN FILTRO</span></h1>
-      <p style="color:#8f9484;max-width:480px;margin:20px auto 0;font-size:15px">Arrastra bloques desde el panel derecho para seguir armando tu página.</p>
-    </section>
-  `);
+  if (!editor.getComponents().length) {
+    editor.setComponents(DISENO_INICIAL);
+  }
 });
+
+function reiniciarDiseno(){
+  if(!confirm('¿Borrar todo el diseño y volver al inicial?\nEsto no afecta la página publicada, solo este editor.')) return;
+  editor.DomComponents.clear();
+  editor.CssComposer.clear();
+  editor.setComponents(DISENO_INICIAL);
+}
 
 function exportarHTML(){
   const html = editor.getHtml();
