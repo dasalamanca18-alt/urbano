@@ -1,7 +1,7 @@
 // Netlify Function: /api/urbano/productos
-// Maneja el inventario completo usando Netlify Blobs (almacenamiento incluido gratis).
+// Inventario con Netlify Blobs — formato moderno (Functions v2)
 
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -10,33 +10,27 @@ const headers = {
   "Content-Type": "application/json"
 };
 
-export const handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
+export default async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("", { status: 200, headers });
   }
 
-  connectLambda(event);
   const store = getStore("urbano-inventario");
   const KEY = "productos";
 
-  async function leerProductos() {
-    const data = await store.get(KEY, { type: "json" });
-    return data || [];
-  }
-  async function guardarProductos(lista) {
-    await store.setJSON(KEY, lista);
-  }
+  const leerProductos = async () => (await store.get(KEY, { type: "json" })) || [];
+  const guardarProductos = (lista) => store.setJSON(KEY, lista);
 
   try {
-    // GET /api/urbano/productos -> lista todo
-    if (event.httpMethod === "GET") {
+    // GET -> lista todo
+    if (req.method === "GET") {
       const productos = await leerProductos();
-      return { statusCode: 200, headers, body: JSON.stringify(productos) };
+      return new Response(JSON.stringify(productos), { status: 200, headers });
     }
 
-    // POST /api/urbano/productos -> agrega un producto
-    if (event.httpMethod === "POST") {
-      const body = JSON.parse(event.body || "{}");
+    // POST -> agrega un producto
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
       const productos = await leerProductos();
       const nuevo = {
         id: "p_" + Date.now(),
@@ -51,21 +45,21 @@ export const handler = async (event) => {
       };
       productos.push(nuevo);
       await guardarProductos(productos);
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, producto: nuevo }) };
+      return new Response(JSON.stringify({ ok: true, producto: nuevo }), { status: 200, headers });
     }
 
-    // DELETE /api/urbano/productos/:id -> elimina un producto
-    if (event.httpMethod === "DELETE") {
-      const partes = event.path.split("/").filter(Boolean);
+    // DELETE /:id -> elimina un producto
+    if (req.method === "DELETE") {
+      const partes = new URL(req.url).pathname.split("/").filter(Boolean);
       const id = partes[partes.length - 1];
       let productos = await leerProductos();
       productos = productos.filter(p => p.id !== id);
       await guardarProductos(productos);
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
-    return { statusCode: 405, headers, body: JSON.stringify({ error: "Método no permitido" }) };
+    return new Response(JSON.stringify({ error: "Método no permitido" }), { status: 405, headers });
   } catch (e) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
   }
 };
