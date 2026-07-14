@@ -34,3 +34,9 @@
   from = "/api/urbano/categorias/*"
   to = "/.netlify/functions/categorias/:splat"
   status = 200
+
+# --- Diseño (zonas editables de la página) ---
+[[redirects]]
+  from = "/api/urbano/diseno"
+  to = "/.netlify/functions/diseno"
+  status = 200
