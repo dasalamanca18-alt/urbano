@@ -2,6 +2,7 @@
   publish = "site"
   functions = "netlify/functions"
 
+# --- Productos ---
 [[redirects]]
   from = "/api/urbano/productos"
   to = "/.netlify/functions/productos"
@@ -12,6 +13,7 @@
   to = "/.netlify/functions/productos/:splat"
   status = 200
 
+# --- Imágenes ---
 [[redirects]]
   from = "/api/urbano/imagenes"
   to = "/.netlify/functions/imagenes"
@@ -20,4 +22,15 @@
 [[redirects]]
   from = "/api/urbano/imagenes/*"
   to = "/.netlify/functions/imagenes/:splat"
+  status = 200
+
+# --- Categorías ---
+[[redirects]]
+  from = "/api/urbano/categorias"
+  to = "/.netlify/functions/categorias"
+  status = 200
+
+[[redirects]]
+  from = "/api/urbano/categorias/*"
+  to = "/.netlify/functions/categorias/:splat"
   status = 200
