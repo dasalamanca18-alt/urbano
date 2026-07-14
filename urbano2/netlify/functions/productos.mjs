@@ -1,9 +1,7 @@
 // Netlify Function: /api/urbano/productos
 // Maneja el inventario completo usando Netlify Blobs (almacenamiento incluido gratis).
-// IMPORTANTE: este archivo debe ser .mjs — @netlify/blobs v7 es un módulo ESM
-// y NO funciona con require() en archivos .js (era la causa del error 500).
 
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +15,7 @@ export const handler = async (event) => {
     return { statusCode: 200, headers, body: "" };
   }
 
+  connectLambda(event);
   const store = getStore("urbano-inventario");
   const KEY = "productos";
 
