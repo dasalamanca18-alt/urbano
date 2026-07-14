@@ -13,3 +13,14 @@
   from = "/api/urbano/productos/*"
   to = "/.netlify/functions/productos/:splat"
   status = 200
+
+# Rutas de la función de imágenes (subir y servir fotos de productos)
+[[redirects]]
+  from = "/api/urbano/imagenes"
+  to = "/.netlify/functions/imagenes"
+  status = 200
+
+[[redirects]]
+  from = "/api/urbano/imagenes/*"
+  to = "/.netlify/functions/imagenes/:splat"
+  status = 200
