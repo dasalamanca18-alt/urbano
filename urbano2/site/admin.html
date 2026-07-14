@@ -221,6 +221,32 @@ const API_URL = "/api/urbano/productos";
 const API_IMAGENES = "/api/urbano/imagenes";
 const API_CATEGORIAS = "/api/urbano/categorias";
 
+/* ============================================================
+   CLAVE DE ADMINISTRACIÓN
+   Se pide una vez por sesión y se envía en cada escritura.
+   Se configura en Netlify como variable de entorno URBANO_CLAVE.
+   ============================================================ */
+const CLAVE_KEY = "urbano_clave";
+function obtenerClave(){
+  let c = sessionStorage.getItem(CLAVE_KEY);
+  if(!c){
+    c = prompt("Clave de administración (si aún no configuras una, deja vacío):") || "";
+    sessionStorage.setItem(CLAVE_KEY, c);
+  }
+  return c;
+}
+function authHeaders(extra){
+  return Object.assign({ "X-Urbano-Clave": obtenerClave() }, extra || {});
+}
+function revisar401(r){
+  if(r.status === 401){
+    sessionStorage.removeItem(CLAVE_KEY);
+    throw new Error("Clave incorrecta. Recarga la página e ingresa la clave correcta.");
+  }
+  return r;
+}
+obtenerClave();
+
 let productosCache = [];
 let categoriasCache = [];
 
@@ -269,9 +295,10 @@ document.getElementById('cat-agregar').addEventListener('click', async () => {
   try{
     const r = await fetch(API_CATEGORIAS, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ nombre })
     });
+    revisar401(r);
     const res = await r.json();
     if(!r.ok) throw new Error(res.error || 'No se pudo agregar');
     categoriasCache = res.categorias;
@@ -289,9 +316,10 @@ async function renombrarCategoria(actual){
   try{
     const r = await fetch(API_CATEGORIAS + '/' + encodeURIComponent(actual), {
       method: 'PUT',
-      headers: {'Content-Type':'application/json'},
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ nuevo: nuevo.trim() })
     });
+    revisar401(r);
     const res = await r.json();
     if(!r.ok) throw new Error(res.error || 'No se pudo renombrar');
     categoriasCache = res.categorias;
@@ -306,7 +334,8 @@ async function renombrarCategoria(actual){
 async function eliminarCategoria(nombre){
   if(!confirm('¿Eliminar la categoría "' + nombre + '"?\nLos productos que la usen pasarán a "Otro".')) return;
   try{
-    const r = await fetch(API_CATEGORIAS + '/' + encodeURIComponent(nombre), { method: 'DELETE' });
+    const r = await fetch(API_CATEGORIAS + '/' + encodeURIComponent(nombre), { method: 'DELETE', headers: authHeaders() });
+    revisar401(r);
     const res = await r.json();
     if(!r.ok) throw new Error(res.error || 'No se pudo eliminar');
     categoriasCache = res.categorias;
@@ -400,17 +429,19 @@ document.getElementById('f-csv').addEventListener('change', async function(){
         if(id && idsExistentes.has(id)){
           const r = await fetch(API_URL + '/' + id, {
             method: 'PUT',
-            headers: {'Content-Type':'application/json'},
+            headers: authHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify(datos)
           });
+          revisar401(r);
           if(!r.ok) throw new Error();
           actualizados++;
         }else{
           const r = await fetch(API_URL, {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: authHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify(datos)
           });
+          revisar401(r);
           if(!r.ok) throw new Error();
           creados++;
         }
@@ -560,9 +591,10 @@ inputArchivo.addEventListener('change', async function(){
     btnSubir.textContent = 'Subiendo...';
     const r = await fetch(API_IMAGENES, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ data: base64, tipo: 'image/jpeg' })
     });
+    revisar401(r);
     const res = await r.json();
     if(!r.ok || !res.ok) throw new Error(res.error || 'Error al subir');
     inputImagen.value = res.url;
@@ -632,10 +664,11 @@ async function cargarProductos(){
 async function eliminarProducto(id){
   if(!confirm('¿Quitar este producto del catálogo?')) return;
   try{
-    await fetch(API_URL + '/' + id, { method:'DELETE', mode:'cors' });
+    const r = await fetch(API_URL + '/' + id, { method:'DELETE', mode:'cors', headers: authHeaders() });
+    revisar401(r);
     cargarProductos();
   }catch(e){
-    alert('No se pudo eliminar. Revisa la conexión con la API.');
+    alert(e.message || 'No se pudo eliminar. Revisa la conexión con la API.');
   }
 }
 
@@ -712,16 +745,17 @@ document.getElementById('form-producto').addEventListener('submit', async functi
     const r = await fetch(esEdicion ? (API_URL + '/' + editandoId) : API_URL, {
       method: esEdicion ? 'PUT' : 'POST',
       mode:'cors',
-      headers:{'Content-Type':'application/json'},
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify(producto)
     });
+    revisar401(r);
     if(!r.ok) throw new Error('error');
     msg.textContent = esEdicion ? 'Producto actualizado.' : 'Producto agregado al catálogo.';
     msg.className = 'msg ok';
     salirModoEdicion();
     cargarProductos();
   }catch(e){
-    msg.textContent = 'No se pudo guardar. Revisa la conexión con la API del inventario.';
+    msg.textContent = e.message || 'No se pudo guardar. Revisa la conexión con la API del inventario.';
     msg.className = 'msg err';
   }
 });
