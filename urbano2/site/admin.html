@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URBANO · Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d0a; --surface:#15170f; --surface2:#1c1f14; --line:#2a2e1e;
+    --text:#eceee6; --muted:#8f9484; --neon:#c6ff21; --neon-dim:#8fb818; --danger:#ff3b3b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;padding:24px}
+  h1{font-family:'Anton',sans-serif;text-transform:uppercase;font-size:30px;margin-bottom:4px}
+  h1 span{color:var(--neon)}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:28px;font-family:'JetBrains Mono',monospace}
+  .wrap{max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:24px}
+  @media(min-width:860px){.wrap{grid-template-columns:360px 1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);padding:22px}
+  .panel h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;color:var(--neon)}
+  label{display:block;font-size:11px;color:var(--muted);margin:12px 0 5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+  label:first-of-type{margin-top:0}
+  input,textarea,select{
+    width:100%;background:var(--surface2);border:1px solid var(--line);color:var(--text);
+    padding:10px 12px;font-family:'Work Sans',sans-serif;font-size:13px;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--neon-dim)}
+  textarea{resize:vertical;min-height:60px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chk{display:flex;align-items:center;gap:8px;margin-top:14px}
+  .chk input{width:auto}
+  .chk label{margin:0;font-size:12px}
+  .submit-btn{
+    margin-top:20px;width:100%;padding:13px;background:var(--neon);color:#0b0d0a;
+    border:none;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+  }
+  .submit-btn:hover{background:var(--neon-dim)}
+  .msg{margin-top:12px;font-size:12px;font-family:'JetBrains Mono',monospace;display:none;padding:8px 10px}
+  .msg.ok{display:block;background:rgba(198,255,33,.1);color:var(--neon);border:1px solid var(--neon-dim)}
+  .msg.err{display:block;background:rgba(255,59,59,.1);color:var(--danger);border:1px solid var(--danger)}
+
+  .list-item{
+    display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);margin-bottom:10px;
+  }
+  .list-img{width:48px;height:48px;background:var(--surface2) center/cover no-repeat;flex-shrink:0}
+  .list-info{flex:1;min-width:0}
+  .list-name{font-size:13px;font-weight:600}
+  .list-sub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+  .list-price{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--neon);white-space:nowrap}
+  .del-btn{
+    background:transparent;border:1px solid var(--danger);color:var(--danger);
+    width:30px;height:30px;cursor:pointer;flex-shrink:0;
+  }
+  .del-btn:hover{background:var(--danger);color:#fff}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:30px;font-family:'JetBrains Mono',monospace}
+  .config-note{
+    background:var(--surface2);border:1px solid var(--line);padding:12px;font-size:11px;
+    color:var(--muted);margin-bottom:20px;font-family:'JetBrains Mono',monospace;line-height:1.6;
+  }
+  .config-note b{color:var(--neon)}
+</style>
+</head>
+<body>
+
+<h1>URBANO<span>·</span> Inventario</h1>
+<p class="sub">Agrega o quita productos del catálogo público</p>
+
+<div class="config-note">
+  <b>Listo para usar:</b> este panel guarda los productos directo en el almacenamiento de Netlify.
+  No requiere ningún servidor externo — funciona apenas subas el proyecto.
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>Nuevo producto</h2>
+    <form id="form-producto">
+      <label>Nombre del producto *</label>
+      <input type="text" id="f-nombre" required placeholder="Ej. Grinder metálico 4 piezas">
+
+      <label>Categoría</label>
+      <select id="f-categoria">
+        <option value="Accesorios">Accesorios</option>
+        <option value="Papeles">Papeles</option>
+        <option value="Aromáticos">Aromáticos</option>
+        <option value="Encendedores">Encendedores</option>
+        <option value="Ropa">Ropa</option>
+        <option value="Otro">Otro</option>
+      </select>
+
+      <div class="row2">
+        <div>
+          <label>Precio (COP) *</label>
+          <input type="number" id="f-precio" required placeholder="35000">
+        </div>
+        <div>
+          <label>Stock</label>
+          <input type="number" id="f-stock" placeholder="10">
+        </div>
+      </div>
+
+      <label>Descripción corta</label>
+      <textarea id="f-descripcion" placeholder="Aluminio resistente, filtro incluido..."></textarea>
+
+      <label>URL de la imagen</label>
+      <input type="url" id="f-imagen" placeholder="https://...">
+
+      <div class="chk">
+        <input type="checkbox" id="f-destacado">
+        <label for="f-destacado" style="text-transform:none;font-family:inherit">Marcar como "Nuevo" (destacado)</label>
+      </div>
+
+      <button type="submit" class="submit-btn">Agregar al catálogo</button>
+      <div class="msg" id="form-msg"></div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Catálogo actual (<span id="total-count">0</span>)</h2>
+    <div id="lista-productos"><div class="empty">Cargando...</div></div>
+  </div>
+</div>
+
+<script>
+// La API vive dentro del mismo sitio de Netlify (Netlify Functions + Blobs).
+const API_URL = "/api/urbano/productos";
+
+async function cargarProductos(){
+  const cont = document.getElementById('lista-productos');
+  try{
+    const r = await fetch(API_URL, { mode:'cors' });
+    const productos = await r.json();
+    document.getElementById('total-count').textContent = productos.length;
+    if(!productos.length){
+      cont.innerHTML = '<div class="empty">Aún no hay productos</div>';
+      return;
+    }
+    cont.innerHTML = productos.map(p => `
+      <div class="list-item">
+        <div class="list-img" style="${p.imagen ? `background-image:url('${p.imagen}')` : ''}"></div>
+        <div class="list-info">
+          <div class="list-name">${p.nombre}</div>
+          <div class="list-sub">${p.categoria || 'General'}</div>
+        </div>
+        <div class="list-price">$${Number(p.precio).toLocaleString('es-CO')}</div>
+        <button class="del-btn" onclick="eliminarProducto('${p.id}')" title="Eliminar">✕</button>
+      </div>
+    `).join('');
+  }catch(e){
+    cont.innerHTML = '<div class="empty">No se pudo conectar a la API. Configura API_URL arriba en este archivo.</div>';
+  }
+}
+
+async function eliminarProducto(id){
+  if(!confirm('¿Quitar este producto del catálogo?')) return;
+  try{
+    await fetch(API_URL + '/' + id, { method:'DELETE', mode:'cors' });
+    cargarProductos();
+  }catch(e){
+    alert('No se pudo eliminar. Revisa la conexión con la API.');
+  }
+}
+
+document.getElementById('form-producto').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const msg = document.getElementById('form-msg');
+  const producto = {
+    nombre: document.getElementById('f-nombre').value.trim(),
+    categoria: document.getElementById('f-categoria').value,
+    precio: Number(document.getElementById('f-precio').value),
+    stock: Number(document.getElementById('f-stock').value) || 0,
+    descripcion: document.getElementById('f-descripcion').value.trim(),
+    imagen: document.getElementById('f-imagen').value.trim(),
+    destacado: document.getElementById('f-destacado').checked
+  };
+  try{
+    const r = await fetch(API_URL, {
+      method:'POST',
+      mode:'cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(producto)
+    });
+    if(!r.ok) throw new Error('error');
+    msg.textContent = 'Producto agregado al catálogo.';
+    msg.className = 'msg ok';
+    this.reset();
+    cargarProductos();
+  }catch(e){
+    msg.textContent = 'No se pudo guardar. Configura API_URL y verifica que el servidor esté encendido.';
+    msg.className = 'msg err';
+  }
+});
+
+cargarProductos();
+</script>
+</body>
+</html>
