@@ -269,11 +269,13 @@
   </button>
 </header>
 
+<div id="zona-arriba">
 <section class="hero">
   <span class="eyebrow">SHOP · MANIZALES</span>
   <h1>ESTILO<br><span class="accent">SIN FILTRO</span></h1>
   <p>Todo lo que necesitas, sin vueltas. Elige tus productos, arma tu pedido y lo confirmamos directo por WhatsApp.</p>
 </section>
+</div>
 
 <section class="catalog">
   <div class="catalog-head">
@@ -298,6 +300,8 @@
   </div>
 </div>
 
+<div id="zona-abajo"></div>
+
 <footer>
   URBANO · Pedidos por <span class="accent">WhatsApp</span> · Solo mayores de edad
 </footer>
@@ -310,6 +314,31 @@ const WHATSAPP_NUMBER = "573145960887";
 // La API vive dentro del mismo sitio de Netlify (Netlify Functions + Blobs).
 // No requiere ningún servidor externo.
 const API_URL = "/api/urbano/productos";
+
+/* =========================================================
+   DISEÑO EDITABLE — carga las zonas publicadas desde el editor.
+   Si no hay diseño publicado, se queda el contenido por defecto.
+========================================================= */
+(async function cargarDiseno(){
+  try{
+    const r = await fetch("/api/urbano/diseno");
+    if(!r.ok) return;
+    const d = await r.json();
+    if(d && d.css){
+      const s = document.createElement('style');
+      s.textContent = d.css;
+      document.head.appendChild(s);
+    }
+    if(d && d.arriba){
+      const z = document.getElementById('zona-arriba');
+      if(z) z.innerHTML = d.arriba;
+    }
+    if(d && d.abajo){
+      const z = document.getElementById('zona-abajo');
+      if(z) z.innerHTML = d.abajo;
+    }
+  }catch(e){ /* si falla, la página sigue con su diseño por defecto */ }
+})();
 const FALLBACK_JSON = "productos.json";
 
 let PRODUCTS = [];
