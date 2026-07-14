@@ -1,15 +1,21 @@
 // Netlify Function: /api/urbano/productos
-// Inventario con Netlify Blobs — formato moderno (Functions v2)
-// GET lista | POST crea | PUT /:id actualiza | DELETE /:id elimina
+// Inventario con Netlify Blobs — GET público; POST/PUT/DELETE requieren clave (URBANO_CLAVE)
 
 import { getStore } from "@netlify/blobs";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Urbano-Clave",
   "Content-Type": "application/json"
 };
+
+// Si URBANO_CLAVE no está configurada en Netlify, no se exige (modo abierto).
+function claveOk(req) {
+  const esperada = process.env.URBANO_CLAVE;
+  if (!esperada) return true;
+  return req.headers.get("x-urbano-clave") === esperada;
+}
 
 export default async (req) => {
   if (req.method === "OPTIONS") {
@@ -23,10 +29,15 @@ export default async (req) => {
   const guardarProductos = (lista) => store.setJSON(KEY, lista);
 
   try {
-    // GET -> lista todo
+    // GET -> lista todo (público: la tienda lo necesita)
     if (req.method === "GET") {
       const productos = await leerProductos();
       return new Response(JSON.stringify(productos), { status: 200, headers });
+    }
+
+    // Todo lo que sigue modifica datos: exige clave
+    if (!claveOk(req)) {
+      return new Response(JSON.stringify({ error: "Clave incorrecta o faltante" }), { status: 401, headers });
     }
 
     // POST -> agrega un producto
