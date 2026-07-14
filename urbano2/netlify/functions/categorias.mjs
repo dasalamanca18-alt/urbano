@@ -7,9 +7,17 @@ import { getStore } from "@netlify/blobs";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Urbano-Clave",
   "Content-Type": "application/json"
 };
+
+
+// Si URBANO_CLAVE no está configurada en Netlify, no se exige (modo abierto).
+function claveOk(req) {
+  const esperada = process.env.URBANO_CLAVE;
+  if (!esperada) return true;
+  return req.headers.get("x-urbano-clave") === esperada;
+}
 
 const CATEGORIAS_INICIALES = ["Accesorios", "Papeles", "Aromáticos", "Encendedores", "Ropa", "Otro"];
 
@@ -34,10 +42,15 @@ export default async (req) => {
   };
 
   try {
-    // GET -> lista de categorías
+    // GET -> lista de categorías (público)
     if (req.method === "GET") {
       const cats = await leer();
       return new Response(JSON.stringify(cats), { status: 200, headers });
+    }
+
+    // Todo lo que sigue modifica datos: exige clave
+    if (!claveOk(req)) {
+      return new Response(JSON.stringify({ error: "Clave incorrecta o faltante" }), { status: 401, headers });
     }
 
     // POST {nombre} -> agrega una categoría
