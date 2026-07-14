@@ -7,195 +7,369 @@
 <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
 <style>
   :root{
-    --bg:#0b0d0a; --surface:#15170f; --line:#2a2e1e;
-    --text:#eceee6; --muted:#8f9484; --neon:#c6ff21; --neon-dim:#8fb818;
+    --bg:#0b0d0a; --surface:#15170f; --surface2:#1c1f14; --line:#2a2e1e;
+    --text:#eceee6; --muted:#8f9484; --neon:#c6ff21; --neon-dim:#8fb818; --danger:#ff3b3b;
   }
-  body{margin:0;font-family:sans-serif;background:var(--bg)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:sans-serif;background:var(--bg);overflow:hidden}
+
   #topbar{
     background:var(--surface);border-bottom:1px solid var(--line);
-    padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;height:50px;
   }
-  #topbar h1{font-size:15px;color:var(--text);margin:0}
+  #topbar h1{font-size:14px;color:var(--text);margin:0;white-space:nowrap}
   #topbar h1 span{color:var(--neon)}
-  .tb-btns{display:flex;gap:8px}
-  #topbar button{
-    border:none;padding:9px 14px;font-weight:700;font-size:11px;
-    letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+  .tb-group{display:flex;gap:6px;align-items:center}
+  .tb-btn{
+    background:transparent;color:var(--muted);border:1px solid var(--line);
+    padding:8px 11px;font-size:11px;font-weight:700;letter-spacing:.5px;
+    text-transform:uppercase;cursor:pointer;
   }
-  .btn-neon{background:var(--neon);color:#0b0d0a}
-  .btn-neon:hover{background:var(--neon-dim)}
-  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line) !important}
-  .btn-ghost:hover{color:#ff3b3b;border-color:#ff3b3b !important}
-  #gjs{height:calc(100vh - 50px);border:none}
+  .tb-btn:hover{color:var(--text);border-color:var(--neon-dim)}
+  .tb-btn.activo{color:var(--neon);border-color:var(--neon)}
+  .tb-btn.neon{background:var(--neon);color:#0b0d0a;border-color:var(--neon)}
+  .tb-btn.neon:hover{background:var(--neon-dim)}
+  .tb-btn.peligro:hover{color:var(--danger);border-color:var(--danger)}
 
-  /* Tema oscuro para la interfaz de GrapesJS */
+  #layout{display:flex;height:calc(100vh - 50px)}
+  #gjs{flex:1;border:none}
+  #sidebar{
+    width:300px;background:var(--surface);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;
+  }
+  #tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{
+    flex:1;padding:11px 4px;text-align:center;font-size:10px;letter-spacing:.5px;
+    text-transform:uppercase;color:var(--muted);cursor:pointer;background:transparent;
+    border:none;border-bottom:2px solid transparent;font-weight:700;
+  }
+  .tab.activo{color:var(--neon);border-bottom-color:var(--neon)}
+  .tab-cont{flex:1;overflow-y:auto;display:none;padding:6px}
+  .tab-cont.activo{display:block}
+
+  #estado{
+    padding:8px 12px;font-size:11px;font-family:monospace;border-top:1px solid var(--line);
+    color:var(--muted);min-height:34px;line-height:1.5;
+  }
+  #estado.ok{color:var(--neon)}
+  #estado.err{color:var(--danger)}
+
+  /* Tema oscuro GrapesJS */
   .gjs-one-bg{background-color:var(--surface)}
   .gjs-two-color{color:var(--text)}
   .gjs-three-bg{background-color:var(--neon);color:#0b0d0a}
-  .gjs-four-color, .gjs-four-color-h:hover{color:var(--neon)}
-  .gjs-pn-btn.gjs-pn-active{background:rgba(198,255,33,.15);color:var(--neon)}
-  .gjs-block{color:var(--text);border:1px solid var(--line);background:#1c1f14;min-height:70px}
-  .gjs-block:hover{border-color:var(--neon-dim)}
-  .gjs-block-label{font-size:11px}
-  .gjs-category-title, .gjs-sm-sector-title, .gjs-layer-title, .gjs-traits-label{
-    background:#1c1f14;border-bottom:1px solid var(--line)
+  .gjs-four-color,.gjs-four-color-h:hover{color:var(--neon)}
+  .gjs-block{
+    width:calc(50% - 8px);min-height:64px;margin:4px;padding:10px 4px;
+    color:var(--text);border:1px solid var(--line);background:var(--surface2);
   }
+  .gjs-block:hover{border-color:var(--neon-dim)}
+  .gjs-block-label{font-size:10px;line-height:1.3}
+  .gjs-block-category .gjs-title,.gjs-sm-sector .gjs-sm-sector-title,
+  .gjs-layer-title,.gjs-trt-header{
+    background:var(--surface2);color:var(--text);border-bottom:1px solid var(--line);font-size:11px;
+  }
+  .gjs-field{background:#101208;color:var(--text)}
+  .gjs-cv-canvas{background:#000}
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <h1>URBANO <span>·</span> Editor de diseño</h1>
-  <div class="tb-btns">
-    <button class="btn-ghost" onclick="reiniciarDiseno()">Reiniciar</button>
-    <button class="btn-neon" onclick="exportarHTML()">Exportar HTML</button>
+  <h1>URBANO <span>·</span> Editor</h1>
+  <div class="tb-group">
+    <button class="tb-btn activo" id="dev-desktop" title="Vista escritorio">🖥</button>
+    <button class="tb-btn" id="dev-mobile" title="Vista celular">📱</button>
+    <button class="tb-btn" id="btn-undo" title="Deshacer">↶</button>
+    <button class="tb-btn" id="btn-redo" title="Rehacer">↷</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn peligro" onclick="reiniciarDiseno()">Reiniciar</button>
+    <button class="tb-btn" onclick="exportarHTML()">Exportar</button>
+    <button class="tb-btn neon" onclick="publicar()">⬆ Publicar</button>
   </div>
 </div>
-<div id="gjs"></div>
+
+<div id="layout">
+  <div id="gjs"></div>
+  <div id="sidebar">
+    <div id="tabs">
+      <button class="tab activo" data-tab="bloques">Bloques</button>
+      <button class="tab" data-tab="estilos">Estilos</button>
+      <button class="tab" data-tab="capas">Capas</button>
+      <button class="tab" data-tab="ajustes">Ajustes</button>
+    </div>
+    <div class="tab-cont activo" id="tc-bloques"><div id="c-bloques"></div></div>
+    <div class="tab-cont" id="tc-estilos"><div id="c-selectores"></div><div id="c-estilos"></div></div>
+    <div class="tab-cont" id="tc-capas"><div id="c-capas"></div></div>
+    <div class="tab-cont" id="tc-ajustes"><div id="c-ajustes"></div></div>
+    <div id="estado">Selecciona un elemento del lienzo para editar sus estilos, o arrastra bloques.</div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/grapesjs"></script>
 <script>
-const DISENO_INICIAL = `
+const API_DISENO = "/api/urbano/diseno";
+const API_IMAGENES = "/api/urbano/imagenes";
+const CLAVE_KEY = "urbano_clave";
+
+function obtenerClave(){
+  let c = sessionStorage.getItem(CLAVE_KEY);
+  if(!c){
+    c = prompt("Clave de administración (si aún no configuras una, deja vacío):") || "";
+    sessionStorage.setItem(CLAVE_KEY, c);
+  }
+  return c;
+}
+
+const ARRIBA_DEFECTO = `
   <section style="padding:70px 24px 50px;text-align:center;background:#0b0d0a;border-bottom:1px solid #2a2e1e">
     <span style="display:inline-block;font-family:monospace;font-size:11px;letter-spacing:3px;color:#c6ff21;border:1px solid #c6ff21;padding:5px 12px;margin-bottom:22px">SHOP · MANIZALES</span>
     <h1 style="font-family:sans-serif;font-weight:900;text-transform:uppercase;font-size:60px;line-height:0.95;color:#eceee6;margin:0">ESTILO<br><span style="color:#c6ff21">SIN FILTRO</span></h1>
-    <p style="color:#8f9484;max-width:480px;margin:20px auto 0;font-size:15px">Doble clic para editar cualquier texto. Arrastra bloques desde el panel derecho (icono de cuadros). Selecciona un elemento y usa el pincel para cambiar colores y estilos.</p>
-  </section>
-`;
+    <p style="color:#8f9484;max-width:480px;margin:20px auto 0;font-size:15px">Todo lo que necesitas, sin vueltas. Elige tus productos, arma tu pedido y lo confirmamos directo por WhatsApp.</p>
+  </section>`;
+
+const ABAJO_DEFECTO = `
+  <section style="padding:50px 24px;max-width:720px;margin:0 auto;text-align:center">
+    <h2 style="font-family:sans-serif;text-transform:uppercase;color:#eceee6;font-size:28px">Sobre URBANO</h2>
+    <p style="color:#8f9484;font-size:14px;line-height:1.7;margin-top:14px">Escribe aquí la historia de tu negocio. Esta zona aparece debajo del catálogo.</p>
+  </section>`;
 
 const editor = grapesjs.init({
   container: '#gjs',
   height: '100%',
   fromElement: false,
-  // Guarda tu avance automáticamente en este navegador
-  storageManager: { type: 'local', autosave: true, autoload: true, stepsBeforeSave: 1 },
-  // OJO: no se tocan los paneles por defecto — ahí viven bloques, estilos, capas y ajustes
+  storageManager: false, // la fuente de verdad es lo publicado en la tienda
+  panels: { defaults: [] }, // interfaz propia (los paneles viven en el sidebar)
+  blockManager: { appendTo: '#c-bloques' },
+  styleManager: { appendTo: '#c-estilos' },
+  selectorManager: { appendTo: '#c-selectores' },
+  layerManager: { appendTo: '#c-capas' },
+  traitManager: { appendTo: '#c-ajustes' },
   deviceManager: {
     devices: [
-      { name: 'Escritorio', width: '' },
-      { name: 'Celular', width: '380px', widthMedia: '480px' }
+      { id: 'desktop', name: 'Escritorio', width: '' },
+      { id: 'mobile', name: 'Celular', width: '380px', widthMedia: '480px' }
     ]
   },
-  blockManager: {
-    blocks: [
-      /* ===== Bloques básicos ===== */
-      {
-        id: 'seccion', label: 'Sección', category: 'Básicos',
-        content: `<section style="padding:50px 24px;background:#0b0d0a"><div style="max-width:960px;margin:0 auto"></div></section>`
-      },
-      {
-        id: 'texto', label: 'Texto', category: 'Básicos',
-        content: `<p style="color:#eceee6;font-family:sans-serif;font-size:15px;line-height:1.7">Doble clic para editar este texto.</p>`
-      },
-      {
-        id: 'titulo', label: 'Título', category: 'Básicos',
-        content: `<h2 style="color:#eceee6;font-family:sans-serif;text-transform:uppercase;font-size:30px;margin:0">TÍTULO</h2>`
-      },
-      {
-        id: 'imagen', label: 'Imagen', category: 'Básicos',
-        content: { type: 'image', style: { 'max-width': '100%' } },
-        activate: true
-      },
-      {
-        id: 'boton', label: 'Botón / Enlace', category: 'Básicos',
-        content: `<a href="#" style="display:inline-block;background:#c6ff21;color:#0b0d0a;padding:13px 24px;font-weight:700;font-family:sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none">Botón</a>`
-      },
-      {
-        id: 'dos-columnas', label: '2 Columnas', category: 'Básicos',
-        content: `
-          <div style="display:flex;gap:20px;flex-wrap:wrap;padding:24px;max-width:960px;margin:0 auto">
-            <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 1</div>
-            <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 2</div>
-          </div>`
-      },
-      {
-        id: 'espacio', label: 'Espaciador', category: 'Básicos',
-        content: `<div style="height:40px"></div>`
-      },
-
-      /* ===== Bloques URBANO ===== */
-      {
-        id: 'hero-urbano', label: 'Hero URBANO', category: 'URBANO',
-        content: `
-          <section style="padding:70px 24px 50px;text-align:center;background:#0b0d0a;border-bottom:1px solid #2a2e1e">
-            <span style="display:inline-block;font-family:monospace;font-size:11px;letter-spacing:3px;color:#c6ff21;border:1px solid #c6ff21;padding:5px 12px;margin-bottom:22px">SHOP · MANIZALES</span>
-            <h1 style="font-family:sans-serif;font-weight:900;text-transform:uppercase;font-size:60px;line-height:0.95;color:#eceee6;margin:0">ESTILO<br><span style="color:#c6ff21">SIN FILTRO</span></h1>
-            <p style="color:#8f9484;max-width:480px;margin:20px auto 0;font-size:15px">Edita este texto para tu próxima campaña o promoción.</p>
-          </section>`
-      },
-      {
-        id: 'banner-promo', label: 'Banner de promoción', category: 'URBANO',
-        content: `
-          <div style="background:repeating-linear-gradient(135deg,#f4d90d 0 16px,#111 16px 32px)">
-            <div style="background:rgba(17,17,17,.85);color:#f4d90d;text-align:center;padding:10px;font-family:monospace;font-weight:700;font-size:13px">
-              ESCRIBE AQUÍ TU PROMOCIÓN — Ej. 2X1 EN PAPELES ESTE FIN DE SEMANA
-            </div>
-          </div>`
-      },
-      {
-        id: 'about-urbano', label: 'Sección "Sobre nosotros"', category: 'URBANO',
-        content: `
-          <section style="padding:50px 24px;max-width:720px;margin:0 auto;text-align:center">
-            <h2 style="font-family:sans-serif;text-transform:uppercase;color:#eceee6;font-size:28px">Sobre URBANO</h2>
-            <p style="color:#8f9484;font-size:14px;line-height:1.7;margin-top:14px">
-              Escribe aquí la historia de tu negocio, tus valores, o por qué tus clientes deberían elegirte.
-            </p>
-          </section>`
-      },
-      {
-        id: 'wa-boton', label: 'Botón WhatsApp', category: 'URBANO',
-        content: `
-          <div style="text-align:center;padding:30px">
-            <a href="https://wa.me/573145960887" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:14px 26px;border-radius:30px;font-weight:700;font-family:sans-serif;text-decoration:none">
-              💬 Escríbenos por WhatsApp
-            </a>
-          </div>`
-      },
-      {
-        id: 'franja-cinta', label: 'Franja cinta de peligro', category: 'URBANO',
-        content: `<div style="height:14px;background:repeating-linear-gradient(135deg,#f4d90d 0 12px,#111 12px 24px)"></div>`
+  assetManager: {
+    // Subir imágenes desde el equipo -> se guardan en el propio Netlify
+    uploadFile: async function(e){
+      const files = (e.dataTransfer ? e.dataTransfer.files : e.target.files);
+      for(const archivo of files){
+        if(!archivo.type.startsWith('image/')) continue;
+        setEstado('Subiendo ' + archivo.name + '...', '');
+        try{
+          const base64 = await comprimirImagen(archivo, 1400, 0.85);
+          const r = await fetch(API_IMAGENES, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Urbano-Clave': obtenerClave() },
+            body: JSON.stringify({ data: base64, tipo: 'image/jpeg' })
+          });
+          if(r.status === 401){ sessionStorage.removeItem(CLAVE_KEY); throw new Error('Clave incorrecta. Recarga e intenta de nuevo.'); }
+          const res = await r.json();
+          if(!r.ok || !res.ok) throw new Error(res.error || 'Error al subir');
+          editor.AssetManager.add({ src: res.url, name: archivo.name });
+          setEstado('✓ Imagen subida. Haz doble clic sobre ella en la galería para usarla.', 'ok');
+        }catch(err){
+          setEstado('✕ ' + err.message, 'err');
+        }
       }
-    ]
-  }
+    }
+  },
+  blockManager2: null,
 });
 
-// Si el lienzo está vacío (primera vez), cargar el diseño de arranque
-editor.on('load', () => {
-  if (!editor.getComponents().length) {
-    editor.setComponents(DISENO_INICIAL);
-  }
-});
+/* ================= BLOQUES ================= */
+const bm = editor.BlockManager;
+const B = (id, label, category, content) => bm.add(id, { label, category, content });
 
-function reiniciarDiseno(){
-  if(!confirm('¿Borrar todo el diseño y volver al inicial?\nEsto no afecta la página publicada, solo este editor.')) return;
+B('titulo','Título','Básicos', `<h2 style="color:#eceee6;font-family:sans-serif;text-transform:uppercase;font-size:30px;margin:0;padding:10px 24px;text-align:center">TÍTULO</h2>`);
+B('texto','Texto','Básicos', `<p style="color:#eceee6;font-family:sans-serif;font-size:15px;line-height:1.7;padding:6px 24px">Doble clic para editar este texto.</p>`);
+B('imagen','Imagen (subir o URL)','Básicos', { type: 'image', style: { 'max-width': '100%' }, activeOnRender: 1 });
+B('boton','Botón / Enlace','Básicos', `<a href="#" style="display:inline-block;background:#c6ff21;color:#0b0d0a;padding:13px 24px;font-weight:700;font-family:sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;margin:10px 24px">Botón</a>`);
+B('seccion','Sección','Básicos', `<section style="padding:50px 24px;background:#0b0d0a"><div style="max-width:960px;margin:0 auto;min-height:40px"></div></section>`);
+B('dos-col','2 Columnas','Básicos', `
+  <div style="display:flex;gap:20px;flex-wrap:wrap;padding:24px;max-width:960px;margin:0 auto">
+    <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 1</div>
+    <div style="flex:1;min-width:260px;padding:20px;border:1px solid #2a2e1e;color:#eceee6;font-family:sans-serif">Columna 2</div>
+  </div>`);
+B('espacio','Espaciador','Básicos', `<div style="height:40px"></div>`);
+B('video-yt','Video YouTube','Multimedia', { type: 'video', provider: 'yt', videoId: '', style: { width: '100%', 'max-width': '720px', height: '400px', display: 'block', margin: '20px auto' } });
+B('mapa','Mapa (Google Maps)','Multimedia', { type: 'map', style: { width: '100%', height: '350px' } });
+B('hero-urbano','Hero URBANO','URBANO', ARRIBA_DEFECTO);
+B('banner-promo','Banner de promoción','URBANO', `
+  <div style="background:repeating-linear-gradient(135deg,#f4d90d 0 16px,#111 16px 32px)">
+    <div style="background:rgba(17,17,17,.85);color:#f4d90d;text-align:center;padding:10px;font-family:monospace;font-weight:700;font-size:13px">
+      ESCRIBE AQUÍ TU PROMOCIÓN — Ej. 2X1 EN PAPELES ESTE FIN DE SEMANA
+    </div>
+  </div>`);
+B('about','Sección "Sobre nosotros"','URBANO', ABAJO_DEFECTO);
+B('wa-boton','Botón WhatsApp','URBANO', `
+  <div style="text-align:center;padding:30px">
+    <a href="https://wa.me/573145960887" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:14px 26px;border-radius:30px;font-weight:700;font-family:sans-serif;text-decoration:none">💬 Escríbenos por WhatsApp</a>
+  </div>`);
+B('franja','Franja cinta de peligro','URBANO', `<div style="height:14px;background:repeating-linear-gradient(135deg,#f4d90d 0 12px,#111 12px 24px)"></div>`);
+
+/* ================= ZONAS (editable / bloqueada) ================= */
+function montarZonas(arriba, abajo){
   editor.DomComponents.clear();
-  editor.CssComposer.clear();
-  editor.setComponents(DISENO_INICIAL);
+  editor.addComponents([
+    {
+      tagName: 'div',
+      attributes: { 'data-zona': 'arriba' },
+      removable: false, draggable: false, copyable: false, selectable: false, hoverable: false,
+      components: arriba
+    },
+    {
+      tagName: 'div',
+      attributes: { id: 'cat-bloqueado' },
+      removable: false, draggable: false, copyable: false, selectable: false,
+      hoverable: false, editable: false, droppable: false, layerable: false, highlightable: false,
+      components: `
+        <div style="margin:0;padding:60px 24px;text-align:center;background:#101208;border-top:2px dashed #2a2e1e;border-bottom:2px dashed #2a2e1e">
+          <div style="font-family:monospace;color:#8f9484;font-size:13px;letter-spacing:1px">🔒 CATÁLOGO + CARRITO + WHATSAPP</div>
+          <div style="font-family:monospace;color:#5a5f4e;font-size:11px;margin-top:8px">Esta zona la maneja el sistema — no es editable.<br>Lo que diseñes ARRIBA aparece antes del catálogo; lo de ABAJO, después.</div>
+        </div>`
+    },
+    {
+      tagName: 'div',
+      attributes: { 'data-zona': 'abajo' },
+      removable: false, draggable: false, copyable: false, selectable: false, hoverable: false,
+      components: abajo
+    }
+  ]);
+}
+
+/* ================= ESTADO / UI ================= */
+function setEstado(texto, clase){
+  const e = document.getElementById('estado');
+  e.textContent = texto;
+  e.className = clase || '';
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('activo'));
+    document.querySelectorAll('.tab-cont').forEach(x => x.classList.remove('activo'));
+    t.classList.add('activo');
+    document.getElementById('tc-' + t.dataset.tab).classList.add('activo');
+  });
+});
+
+// Al seleccionar un elemento, saltar a Estilos
+editor.on('component:selected', () => {
+  document.querySelector('.tab[data-tab="estilos"]').click();
+});
+
+document.getElementById('dev-desktop').onclick = function(){
+  editor.setDevice('Escritorio');
+  this.classList.add('activo'); document.getElementById('dev-mobile').classList.remove('activo');
+};
+document.getElementById('dev-mobile').onclick = function(){
+  editor.setDevice('Celular');
+  this.classList.add('activo'); document.getElementById('dev-desktop').classList.remove('activo');
+};
+document.getElementById('btn-undo').onclick = () => editor.UndoManager.undo();
+document.getElementById('btn-redo').onclick = () => editor.UndoManager.redo();
+
+/* ================= CARGA INICIAL (desde la página publicada) ================= */
+editor.on('load', async () => {
+  editor.Canvas.getBody().style.background = '#0b0d0a';
+  try{
+    const r = await fetch(API_DISENO);
+    const d = r.ok ? await r.json() : {};
+    if(d && d.css) editor.setStyle(d.css);
+    montarZonas(d.arriba || ARRIBA_DEFECTO, d.abajo || ABAJO_DEFECTO);
+    setEstado(d.arriba ? 'Diseño publicado cargado. Edita y dale Publicar.' : 'Diseño inicial cargado. Edita y dale Publicar.', 'ok');
+  }catch(e){
+    montarZonas(ARRIBA_DEFECTO, ABAJO_DEFECTO);
+    setEstado('No se pudo leer el diseño publicado — cargué el inicial.', 'err');
+  }
+});
+
+/* ================= PUBLICAR ================= */
+function htmlDeZona(nombre){
+  const z = editor.getWrapper().find('[data-zona=' + nombre + ']')[0];
+  if(!z) return '';
+  if(typeof z.getInnerHTML === 'function') return z.getInnerHTML();
+  return z.components().map(c => c.toHTML()).join('');
+}
+
+async function publicar(){
+  setEstado('Publicando...', '');
+  try{
+    const cuerpo = {
+      arriba: htmlDeZona('arriba'),
+      abajo: htmlDeZona('abajo'),
+      css: editor.getCss()
+    };
+    const r = await fetch(API_DISENO, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Urbano-Clave': obtenerClave() },
+      body: JSON.stringify(cuerpo)
+    });
+    if(r.status === 401){
+      sessionStorage.removeItem(CLAVE_KEY);
+      throw new Error('Clave incorrecta. Recarga la página e ingresa la clave correcta.');
+    }
+    const res = await r.json();
+    if(!r.ok || !res.ok) throw new Error(res.error || 'Error al publicar');
+    setEstado('✓ Publicado. Abre la tienda y recarga para verlo en vivo.', 'ok');
+  }catch(e){
+    setEstado('✕ ' + e.message, 'err');
+  }
+}
+
+/* ================= REINICIAR / EXPORTAR ================= */
+function reiniciarDiseno(){
+  if(!confirm('¿Volver al diseño inicial?\n(No cambia la tienda hasta que le des Publicar)')) return;
+  editor.setStyle('');
+  montarZonas(ARRIBA_DEFECTO, ABAJO_DEFECTO);
+  setEstado('Diseño reiniciado (sin publicar).', '');
 }
 
 function exportarHTML(){
-  const html = editor.getHtml();
-  const css = editor.getCss();
   const full = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>URBANO</title>
-<style>
-body{margin:0;background:#0b0d0a;font-family:sans-serif}
-${css}
-</style>
-</head>
-<body>
-${html}
-</body>
-</html>`;
+<html lang="es"><head><meta charset="UTF-8"><title>URBANO</title>
+<style>body{margin:0;background:#0b0d0a;font-family:sans-serif}
+${editor.getCss()}</style></head><body>
+<!-- ZONA ARRIBA -->
+${htmlDeZona('arriba')}
+<!-- AQUÍ VA EL CATÁLOGO -->
+<!-- ZONA ABAJO -->
+${htmlDeZona('abajo')}
+</body></html>`;
   const blob = new Blob([full], {type:'text/html'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'urbano-diseno.html';
   a.click();
 }
+
+/* ================= UTILIDADES ================= */
+function comprimirImagen(archivo, maxLado, calidad){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(archivo);
+    img.onload = function(){
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if(w > maxLado || h > maxLado){
+        const esc = maxLado / Math.max(w, h);
+        w = Math.round(w * esc); h = Math.round(h * esc);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', calidad).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
+    img.src = url;
+  });
+}
+
+obtenerClave();
 </script>
 </body>
 </html>
