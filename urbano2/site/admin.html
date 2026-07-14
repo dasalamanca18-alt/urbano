@@ -40,6 +40,24 @@
   .msg.ok{display:block;background:rgba(198,255,33,.1);color:var(--neon);border:1px solid var(--neon-dim)}
   .msg.err{display:block;background:rgba(255,59,59,.1);color:var(--danger);border:1px solid var(--danger)}
 
+  /* --- Zona de imagen --- */
+  .img-zone{margin-top:4px}
+  .upload-btn{
+    margin-top:8px;width:100%;padding:10px;background:transparent;color:var(--neon);
+    border:1px dashed var(--neon-dim);font-size:12px;font-family:'JetBrains Mono',monospace;
+    letter-spacing:.5px;cursor:pointer;text-transform:uppercase;
+  }
+  .upload-btn:hover{background:rgba(198,255,33,.06)}
+  .upload-btn:disabled{opacity:.5;cursor:wait}
+  .img-status{margin-top:8px;font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.5;display:none;padding:7px 9px}
+  .img-status.ok{display:block;color:var(--neon);background:rgba(198,255,33,.08);border:1px solid var(--neon-dim)}
+  .img-status.err{display:block;color:var(--danger);background:rgba(255,59,59,.08);border:1px solid var(--danger)}
+  .img-status.info{display:block;color:var(--muted);background:var(--surface2);border:1px solid var(--line)}
+  .img-preview{
+    margin-top:8px;width:100%;height:130px;border:1px solid var(--line);
+    background:var(--surface2) center/contain no-repeat;display:none;
+  }
+
   .list-item{
     display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);margin-bottom:10px;
   }
@@ -68,7 +86,7 @@
 
 <div class="config-note">
   <b>Listo para usar:</b> este panel guarda los productos directo en el almacenamiento de Netlify.
-  No requiere ningún servidor externo — funciona apenas subas el proyecto.
+  Puedes pegar un enlace de imagen (Drive, Dropbox o directo) — se corrige solo — o subir la foto desde tu equipo.
 </div>
 
 <div class="wrap">
@@ -102,8 +120,14 @@
       <label>Descripción corta</label>
       <textarea id="f-descripcion" placeholder="Aluminio resistente, filtro incluido..."></textarea>
 
-      <label>URL de la imagen</label>
-      <input type="url" id="f-imagen" placeholder="https://...">
+      <label>Imagen del producto</label>
+      <div class="img-zone">
+        <input type="text" id="f-imagen" placeholder="Pega aquí un enlace (Drive, Dropbox o directo)...">
+        <button type="button" class="upload-btn" id="btn-subir">⬆ O sube la imagen desde tu equipo</button>
+        <input type="file" id="f-archivo" accept="image/*" style="display:none">
+        <div class="img-status" id="img-status"></div>
+        <div class="img-preview" id="img-preview"></div>
+      </div>
 
       <div class="chk">
         <input type="checkbox" id="f-destacado">
@@ -124,7 +148,165 @@
 <script>
 // La API vive dentro del mismo sitio de Netlify (Netlify Functions + Blobs).
 const API_URL = "/api/urbano/productos";
+const API_IMAGENES = "/api/urbano/imagenes";
 
+/* ============================================================
+   NORMALIZADOR DE URLs — convierte enlaces "de compartir" en
+   enlaces directos de imagen. No necesita IA: son patrones fijos.
+   ============================================================ */
+function normalizarUrlImagen(url){
+  url = (url || "").trim();
+  if(!url) return "";
+
+  // Google Drive: /file/d/ID/... , ?id=ID , /open?id=ID , uc?export=...&id=ID
+  let m = url.match(/drive\.google\.com\/file\/d\/([\w-]{20,})/);
+  if(!m) m = url.match(/drive\.google\.com\/(?:open|uc)\?(?:[^#]*&)?id=([\w-]{20,})/);
+  if(m) return "https://lh3.googleusercontent.com/d/" + m[1];
+
+  // Google Photos / googleusercontent ya directos: se dejan igual
+  if(/googleusercontent\.com/.test(url)) return url;
+
+  // Dropbox: cambiar dl=0 por raw=1 (entrega el archivo crudo)
+  if(/dropbox\.com/.test(url)){
+    url = url.replace(/[?&]dl=0/, "");
+    return url + (url.includes("?") ? "&" : "?") + "raw=1";
+  }
+
+  // OneDrive: agregar ?download=1 al enlace de compartir
+  if(/1drv\.ms|onedrive\.live\.com/.test(url) && !/download=1/.test(url)){
+    return url + (url.includes("?") ? "&" : "?") + "download=1";
+  }
+
+  // postimages: si pegaron la página del visor en vez del enlace directo
+  m = url.match(/postimg\.cc\/(?!.*\.(?:png|jpe?g|gif|webp))([\w]+)/i);
+  if(m && !/i\.postimg\.cc/.test(url)){
+    // No se puede deducir el directo desde el visor; se avisa al usuario.
+    return { aviso: "Ese es el enlace de la página de Postimages. Copia el que dice 'Direct link' (empieza con i.postimg.cc)." };
+  }
+
+  // imgur: página del visor -> intentar versión directa
+  m = url.match(/^https?:\/\/imgur\.com\/([\w]+)$/);
+  if(m) return "https://i.imgur.com/" + m[1] + ".jpg";
+
+  return url; // cualquier otra URL se prueba tal cual
+}
+
+/* ============================================================
+   VISTA PREVIA con detección real: se intenta cargar la imagen
+   y si el navegador no puede pintarla, se avisa con el porqué.
+   ============================================================ */
+const inputImagen = document.getElementById('f-imagen');
+const statusImg = document.getElementById('img-status');
+const previewImg = document.getElementById('img-preview');
+let urlValidada = ""; // solo se envía una imagen que pasó la prueba
+
+function setStatus(texto, clase){
+  statusImg.textContent = texto;
+  statusImg.className = 'img-status ' + clase;
+}
+
+function probarImagen(url){
+  urlValidada = "";
+  previewImg.style.display = 'none';
+  if(!url){ statusImg.className = 'img-status'; return; }
+
+  setStatus('Probando la imagen...', 'info');
+  const img = new Image();
+  img.onload = function(){
+    urlValidada = url;
+    previewImg.style.backgroundImage = "url('" + url + "')";
+    previewImg.style.display = 'block';
+    setStatus('✓ Imagen verificada — se guardará esta.', 'ok');
+  };
+  img.onerror = function(){
+    setStatus('✕ Esa URL no devuelve una imagen visible (puede ser una página web, o el archivo es privado). Corrige el enlace o usa el botón de subir.', 'err');
+  };
+  img.src = url;
+}
+
+inputImagen.addEventListener('change', function(){
+  const resultado = normalizarUrlImagen(this.value);
+  if(typeof resultado === 'object' && resultado.aviso){
+    setStatus('✕ ' + resultado.aviso, 'err');
+    return;
+  }
+  if(resultado !== this.value.trim()){
+    this.value = resultado; // muestra la URL ya corregida
+    setStatus('Enlace corregido automáticamente. Probando...', 'info');
+  }
+  probarImagen(resultado);
+});
+
+/* ============================================================
+   SUBIDA DIRECTA — plan B infalible: la foto se comprime en el
+   navegador y se guarda dentro del propio Netlify (Blobs).
+   ============================================================ */
+const btnSubir = document.getElementById('btn-subir');
+const inputArchivo = document.getElementById('f-archivo');
+
+btnSubir.addEventListener('click', () => inputArchivo.click());
+
+inputArchivo.addEventListener('change', async function(){
+  const archivo = this.files[0];
+  if(!archivo) return;
+  if(!archivo.type.startsWith('image/')){
+    setStatus('✕ Ese archivo no es una imagen.', 'err');
+    return;
+  }
+
+  btnSubir.disabled = true;
+  btnSubir.textContent = 'Comprimiendo...';
+
+  try{
+    // Comprimir: máx 1200px de lado, JPEG calidad 0.82
+    const base64 = await comprimirImagen(archivo, 1200, 0.82);
+
+    btnSubir.textContent = 'Subiendo...';
+    const r = await fetch(API_IMAGENES, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64, tipo: 'image/jpeg' })
+    });
+    const res = await r.json();
+    if(!r.ok || !res.ok) throw new Error(res.error || 'Error al subir');
+
+    inputImagen.value = res.url;
+    probarImagen(res.url);
+  }catch(e){
+    setStatus('✕ No se pudo subir: ' + e.message, 'err');
+  }finally{
+    btnSubir.disabled = false;
+    btnSubir.textContent = '⬆ O sube la imagen desde tu equipo';
+    inputArchivo.value = '';
+  }
+});
+
+function comprimirImagen(archivo, maxLado, calidad){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(archivo);
+    img.onload = function(){
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if(w > maxLado || h > maxLado){
+        const escala = maxLado / Math.max(w, h);
+        w = Math.round(w * escala);
+        h = Math.round(h * escala);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', calidad);
+      resolve(dataUrl.split(',')[1]); // solo el base64, sin el prefijo
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
+    img.src = url;
+  });
+}
+
+/* ============================================================
+   CATÁLOGO (igual que antes)
+   ============================================================ */
 async function cargarProductos(){
   const cont = document.getElementById('lista-productos');
   try{
@@ -147,7 +329,7 @@ async function cargarProductos(){
       </div>
     `).join('');
   }catch(e){
-    cont.innerHTML = '<div class="empty">No se pudo conectar a la API. Configura API_URL arriba en este archivo.</div>';
+    cont.innerHTML = '<div class="empty">No se pudo conectar a la API del inventario.</div>';
   }
 }
 
@@ -164,13 +346,22 @@ async function eliminarProducto(id){
 document.getElementById('form-producto').addEventListener('submit', async function(e){
   e.preventDefault();
   const msg = document.getElementById('form-msg');
+  const urlEscrita = inputImagen.value.trim();
+
+  // Si escribieron una URL pero no pasó la prueba, avisar antes de guardar
+  if(urlEscrita && urlEscrita !== urlValidada){
+    msg.textContent = 'La imagen no está verificada. Espera la marca ✓ o deja el campo vacío.';
+    msg.className = 'msg err';
+    return;
+  }
+
   const producto = {
     nombre: document.getElementById('f-nombre').value.trim(),
     categoria: document.getElementById('f-categoria').value,
     precio: Number(document.getElementById('f-precio').value),
     stock: Number(document.getElementById('f-stock').value) || 0,
     descripcion: document.getElementById('f-descripcion').value.trim(),
-    imagen: document.getElementById('f-imagen').value.trim(),
+    imagen: urlValidada,
     destacado: document.getElementById('f-destacado').checked
   };
   try{
@@ -184,9 +375,12 @@ document.getElementById('form-producto').addEventListener('submit', async functi
     msg.textContent = 'Producto agregado al catálogo.';
     msg.className = 'msg ok';
     this.reset();
+    urlValidada = "";
+    previewImg.style.display = 'none';
+    statusImg.className = 'img-status';
     cargarProductos();
   }catch(e){
-    msg.textContent = 'No se pudo guardar. Configura API_URL y verifica que el servidor esté encendido.';
+    msg.textContent = 'No se pudo guardar. Revisa la conexión con la API del inventario.';
     msg.className = 'msg err';
   }
 });
