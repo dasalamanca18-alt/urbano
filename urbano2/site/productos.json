@@ -1,0 +1,29 @@
+[
+  {
+    "id": "demo-1",
+    "nombre": "Grinder metálico 4 piezas",
+    "categoria": "Accesorios",
+    "descripcion": "Aluminio resistente, filtro incluido.",
+    "precio": 35000,
+    "imagen": "",
+    "destacado": true
+  },
+  {
+    "id": "demo-2",
+    "nombre": "Papel King Size x50",
+    "categoria": "Papeles",
+    "descripcion": "Combustión lenta, caja x50 unidades.",
+    "precio": 8000,
+    "imagen": "",
+    "destacado": false
+  },
+  {
+    "id": "demo-3",
+    "nombre": "Encendedor a prueba de viento",
+    "categoria": "Accesorios",
+    "descripcion": "Recargable, llama doble turbo.",
+    "precio": 22000,
+    "imagen": "",
+    "destacado": false
+  }
+]
