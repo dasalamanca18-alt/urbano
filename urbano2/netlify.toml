@@ -2,8 +2,6 @@
   publish = "site"
   functions = "netlify/functions"
 
-# Permite llamar a la función como /api/urbano/productos
-# en vez de la ruta larga /.netlify/functions/productos
 [[redirects]]
   from = "/api/urbano/productos"
   to = "/.netlify/functions/productos"
@@ -12,4 +10,14 @@
 [[redirects]]
   from = "/api/urbano/productos/*"
   to = "/.netlify/functions/productos/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/urbano/imagenes"
+  to = "/.netlify/functions/imagenes"
+  status = 200
+
+[[redirects]]
+  from = "/api/urbano/imagenes/*"
+  to = "/.netlify/functions/imagenes/:splat"
   status = 200
