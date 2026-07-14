@@ -15,8 +15,9 @@
   h1{font-family:'Anton',sans-serif;text-transform:uppercase;font-size:30px;margin-bottom:4px}
   h1 span{color:var(--neon)}
   .sub{color:var(--muted);font-size:13px;margin-bottom:28px;font-family:'JetBrains Mono',monospace}
-  .wrap{max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:24px}
-  @media(min-width:860px){.wrap{grid-template-columns:360px 1fr}}
+  .wrap{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:24px}
+  @media(min-width:900px){.wrap{grid-template-columns:360px 1fr}}
+  .col-der{display:flex;flex-direction:column;gap:24px}
   .panel{background:var(--surface);border:1px solid var(--line);padding:22px}
   .panel h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;color:var(--neon)}
   label{display:block;font-size:11px;color:var(--muted);margin:12px 0 5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
@@ -41,7 +42,6 @@
   .msg.err{display:block;background:rgba(255,59,59,.1);color:var(--danger);border:1px solid var(--danger)}
 
   /* --- Zona de imagen --- */
-  .img-zone{margin-top:4px}
   .upload-btn{
     margin-top:8px;width:100%;padding:10px;background:transparent;color:var(--neon);
     border:1px dashed var(--neon-dim);font-size:12px;font-family:'JetBrains Mono',monospace;
@@ -58,6 +58,41 @@
     background:var(--surface2) center/contain no-repeat;display:none;
   }
 
+  /* --- Categorías --- */
+  .cat-add{display:flex;gap:8px}
+  .cat-add input{flex:1}
+  .cat-add button{
+    background:var(--neon);color:#0b0d0a;border:none;padding:0 16px;font-weight:700;
+    font-size:12px;cursor:pointer;text-transform:uppercase;
+  }
+  .cat-add button:hover{background:var(--neon-dim)}
+  .cat-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .cat-chip{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+    background:var(--surface2);padding:6px 8px 6px 12px;font-size:12px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .cat-chip button{
+    background:transparent;border:none;cursor:pointer;font-size:12px;
+    padding:2px 4px;line-height:1;
+  }
+  .cat-chip .c-edit{color:var(--muted)}
+  .cat-chip .c-edit:hover{color:var(--neon)}
+  .cat-chip .c-del{color:var(--muted)}
+  .cat-chip .c-del:hover{color:var(--danger)}
+
+  /* --- Excel / CSV --- */
+  .excel-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .excel-btn{
+    padding:11px;background:transparent;color:var(--neon);border:1px solid var(--neon-dim);
+    font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;
+    text-transform:uppercase;letter-spacing:.5px;
+  }
+  .excel-btn:hover{background:rgba(198,255,33,.06)}
+  .excel-btn:disabled{opacity:.5;cursor:wait}
+  .excel-hint{margin-top:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.6}
+
+  /* --- Lista de productos --- */
   .list-item{
     display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);margin-bottom:10px;
   }
@@ -65,7 +100,8 @@
   .list-info{flex:1;min-width:0}
   .list-name{font-size:13px;font-weight:600}
   .list-sub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
-  .list-price{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--neon);white-space:nowrap}
+  .list-price{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--neon);white-space:nowrap;text-align:right}
+  .list-stock{font-size:10px;color:var(--muted)}
   .del-btn{
     background:transparent;border:1px solid var(--danger);color:var(--danger);
     width:30px;height:30px;cursor:pointer;flex-shrink:0;
@@ -85,8 +121,8 @@
 <p class="sub">Agrega o quita productos del catálogo público</p>
 
 <div class="config-note">
-  <b>Listo para usar:</b> este panel guarda los productos directo en el almacenamiento de Netlify.
-  Puedes pegar un enlace de imagen (Drive, Dropbox o directo) — se corrige solo — o subir la foto desde tu equipo.
+  <b>Listo para usar:</b> productos, categorías e imágenes se guardan directo en Netlify.
+  Puedes exportar el inventario a Excel, editarlo, y volverlo a importar.
 </div>
 
 <div class="wrap">
@@ -97,14 +133,7 @@
       <input type="text" id="f-nombre" required placeholder="Ej. Grinder metálico 4 piezas">
 
       <label>Categoría</label>
-      <select id="f-categoria">
-        <option value="Accesorios">Accesorios</option>
-        <option value="Papeles">Papeles</option>
-        <option value="Aromáticos">Aromáticos</option>
-        <option value="Encendedores">Encendedores</option>
-        <option value="Ropa">Ropa</option>
-        <option value="Otro">Otro</option>
-      </select>
+      <select id="f-categoria"></select>
 
       <div class="row2">
         <div>
@@ -121,7 +150,7 @@
       <textarea id="f-descripcion" placeholder="Aluminio resistente, filtro incluido..."></textarea>
 
       <label>Imagen del producto</label>
-      <div class="img-zone">
+      <div>
         <input type="text" id="f-imagen" placeholder="Pega aquí un enlace (Drive, Dropbox o directo)...">
         <button type="button" class="upload-btn" id="btn-subir">⬆ O sube la imagen desde tu equipo</button>
         <input type="file" id="f-archivo" accept="image/*" style="display:none">
@@ -139,66 +168,323 @@
     </form>
   </div>
 
-  <div class="panel">
-    <h2>Catálogo actual (<span id="total-count">0</span>)</h2>
-    <div id="lista-productos"><div class="empty">Cargando...</div></div>
+  <div class="col-der">
+
+    <div class="panel">
+      <h2>Categorías</h2>
+      <div class="cat-add">
+        <input type="text" id="cat-nueva" placeholder="Nueva categoría (Ej. Vapes)">
+        <button type="button" id="cat-agregar">+ Agregar</button>
+      </div>
+      <div class="cat-chips" id="cat-chips"><span class="empty" style="padding:10px">Cargando...</span></div>
+      <div class="msg" id="cat-msg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Inventario en Excel</h2>
+      <div class="excel-row">
+        <button type="button" class="excel-btn" id="btn-exportar">⬇ Exportar a Excel</button>
+        <button type="button" class="excel-btn" id="btn-importar">⬆ Importar desde Excel</button>
+        <input type="file" id="f-csv" accept=".csv,text/csv" style="display:none">
+      </div>
+      <div class="excel-hint">
+        1. Exporta → se descarga un archivo .csv que abre en Excel o Google Sheets.<br>
+        2. Edita precios, stock o agrega filas nuevas (deja la columna <b>id</b> vacía en las nuevas).<br>
+        3. Guarda como CSV e impórtalo aquí: lo existente se actualiza, lo nuevo se crea. Nada se borra.
+      </div>
+      <div class="msg" id="excel-msg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Catálogo actual (<span id="total-count">0</span>)</h2>
+      <div id="lista-productos"><div class="empty">Cargando...</div></div>
+    </div>
+
   </div>
 </div>
 
 <script>
-// La API vive dentro del mismo sitio de Netlify (Netlify Functions + Blobs).
 const API_URL = "/api/urbano/productos";
 const API_IMAGENES = "/api/urbano/imagenes";
+const API_CATEGORIAS = "/api/urbano/categorias";
+
+let productosCache = [];
+let categoriasCache = [];
 
 /* ============================================================
-   NORMALIZADOR DE URLs — convierte enlaces "de compartir" en
-   enlaces directos de imagen. No necesita IA: son patrones fijos.
+   CATEGORÍAS — agregar, renombrar, eliminar
+   ============================================================ */
+const catMsg = document.getElementById('cat-msg');
+function setCatMsg(texto, clase){
+  catMsg.textContent = texto;
+  catMsg.className = texto ? ('msg ' + clase) : 'msg';
+  if(texto) setTimeout(() => { catMsg.className = 'msg'; }, 4000);
+}
+
+async function cargarCategorias(){
+  try{
+    const r = await fetch(API_CATEGORIAS);
+    categoriasCache = await r.json();
+  }catch(e){
+    categoriasCache = ["Otro"];
+  }
+  pintarCategorias();
+}
+
+function pintarCategorias(){
+  // Select del formulario
+  const sel = document.getElementById('f-categoria');
+  const valorPrevio = sel.value;
+  sel.innerHTML = categoriasCache.map(c => `<option value="${c}">${c}</option>`).join('');
+  if(categoriasCache.includes(valorPrevio)) sel.value = valorPrevio;
+
+  // Chips con editar/eliminar
+  const cont = document.getElementById('cat-chips');
+  cont.innerHTML = categoriasCache.map(c => `
+    <span class="cat-chip">
+      ${c}
+      <button type="button" class="c-edit" title="Renombrar" onclick="renombrarCategoria('${c.replace(/'/g, "\\'")}')">✎</button>
+      <button type="button" class="c-del" title="Eliminar" onclick="eliminarCategoria('${c.replace(/'/g, "\\'")}')">✕</button>
+    </span>
+  `).join('');
+}
+
+document.getElementById('cat-agregar').addEventListener('click', async () => {
+  const input = document.getElementById('cat-nueva');
+  const nombre = input.value.trim();
+  if(!nombre) return;
+  try{
+    const r = await fetch(API_CATEGORIAS, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nombre })
+    });
+    const res = await r.json();
+    if(!r.ok) throw new Error(res.error || 'No se pudo agregar');
+    categoriasCache = res.categorias;
+    pintarCategorias();
+    input.value = '';
+    setCatMsg('Categoría agregada.', 'ok');
+  }catch(e){
+    setCatMsg(e.message, 'err');
+  }
+});
+
+async function renombrarCategoria(actual){
+  const nuevo = prompt('Nuevo nombre para "' + actual + '":', actual);
+  if(!nuevo || nuevo.trim() === actual) return;
+  try{
+    const r = await fetch(API_CATEGORIAS + '/' + encodeURIComponent(actual), {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nuevo: nuevo.trim() })
+    });
+    const res = await r.json();
+    if(!r.ok) throw new Error(res.error || 'No se pudo renombrar');
+    categoriasCache = res.categorias;
+    pintarCategorias();
+    cargarProductos();
+    setCatMsg('Renombrada. Productos actualizados: ' + res.productosActualizados, 'ok');
+  }catch(e){
+    setCatMsg(e.message, 'err');
+  }
+}
+
+async function eliminarCategoria(nombre){
+  if(!confirm('¿Eliminar la categoría "' + nombre + '"?\nLos productos que la usen pasarán a "Otro".')) return;
+  try{
+    const r = await fetch(API_CATEGORIAS + '/' + encodeURIComponent(nombre), { method: 'DELETE' });
+    const res = await r.json();
+    if(!r.ok) throw new Error(res.error || 'No se pudo eliminar');
+    categoriasCache = res.categorias;
+    pintarCategorias();
+    cargarProductos();
+    setCatMsg('Eliminada.' + (res.productosMovidos ? ' Productos movidos a "Otro": ' + res.productosMovidos : ''), 'ok');
+  }catch(e){
+    setCatMsg(e.message, 'err');
+  }
+}
+
+/* ============================================================
+   EXCEL (CSV) — exportar e importar el inventario
+   ============================================================ */
+const excelMsg = document.getElementById('excel-msg');
+function setExcelMsg(texto, clase){
+  excelMsg.textContent = texto;
+  excelMsg.className = 'msg ' + clase;
+}
+
+const COLUMNAS = ["id","nombre","categoria","precio","stock","descripcion","imagen","destacado"];
+
+document.getElementById('btn-exportar').addEventListener('click', () => {
+  if(!productosCache.length){
+    setExcelMsg('No hay productos para exportar todavía.', 'err');
+    return;
+  }
+  const esc = (v) => {
+    v = String(v == null ? '' : v);
+    return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
+  const filas = [COLUMNAS.join(';')];
+  for(const p of productosCache){
+    filas.push(COLUMNAS.map(c => esc(c === 'destacado' ? (p[c] ? 'SI' : 'NO') : p[c])).join(';'));
+  }
+  // BOM para que Excel abra las tildes bien
+  const blob = new Blob(['\uFEFF' + filas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'inventario-urbano.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setExcelMsg('Exportado: inventario-urbano.csv', 'ok');
+});
+
+document.getElementById('btn-importar').addEventListener('click', () => {
+  document.getElementById('f-csv').click();
+});
+
+document.getElementById('f-csv').addEventListener('change', async function(){
+  const archivo = this.files[0];
+  this.value = '';
+  if(!archivo) return;
+
+  const btn = document.getElementById('btn-importar');
+  btn.disabled = true;
+  setExcelMsg('Leyendo archivo...', 'ok');
+
+  try{
+    let texto = await archivo.text();
+    texto = texto.replace(/^\uFEFF/, ''); // quitar BOM si viene
+    const lineas = parsearCSV(texto);
+    if(lineas.length < 2) throw new Error('El archivo no tiene filas de datos.');
+
+    const cabecera = lineas[0].map(c => c.trim().toLowerCase());
+    const col = {};
+    COLUMNAS.forEach(c => { col[c] = cabecera.indexOf(c); });
+    if(col.nombre < 0) throw new Error('El archivo debe tener al menos la columna "nombre".');
+
+    let actualizados = 0, creados = 0, errores = 0;
+    const idsExistentes = new Set(productosCache.map(p => p.id));
+
+    for(let i = 1; i < lineas.length; i++){
+      const fila = lineas[i];
+      if(!fila.length || fila.every(c => !c.trim())) continue;
+      const val = (c) => col[c] >= 0 ? (fila[col[c]] || '').trim() : '';
+
+      const datos = {
+        nombre: val('nombre'),
+        categoria: val('categoria') || 'Otro',
+        precio: Number(String(val('precio')).replace(/[^\d.-]/g, '')) || 0,
+        stock: Number(String(val('stock')).replace(/[^\d.-]/g, '')) || 0,
+        descripcion: val('descripcion'),
+        imagen: val('imagen'),
+        destacado: /^(si|sí|true|1|x)$/i.test(val('destacado'))
+      };
+      if(!datos.nombre){ continue; }
+
+      const id = val('id');
+      try{
+        if(id && idsExistentes.has(id)){
+          const r = await fetch(API_URL + '/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(datos)
+          });
+          if(!r.ok) throw new Error();
+          actualizados++;
+        }else{
+          const r = await fetch(API_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(datos)
+          });
+          if(!r.ok) throw new Error();
+          creados++;
+        }
+      }catch(e){
+        errores++;
+      }
+    }
+
+    await cargarProductos();
+    setExcelMsg(`Importación lista — actualizados: ${actualizados} · creados: ${creados}` + (errores ? ` · errores: ${errores}` : ''), errores ? 'err' : 'ok');
+  }catch(e){
+    setExcelMsg('✕ ' + e.message, 'err');
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+// Parser CSV simple: detecta el separador (; o ,) y respeta comillas
+function parsearCSV(texto){
+  const primeraLinea = texto.split(/\r?\n/)[0] || '';
+  const sep = (primeraLinea.split(';').length >= primeraLinea.split(',').length) ? ';' : ',';
+  const filas = [];
+  let fila = [], celda = '', enComillas = false;
+  for(let i = 0; i < texto.length; i++){
+    const ch = texto[i];
+    if(enComillas){
+      if(ch === '"'){
+        if(texto[i+1] === '"'){ celda += '"'; i++; }
+        else enComillas = false;
+      }else celda += ch;
+    }else{
+      if(ch === '"') enComillas = true;
+      else if(ch === sep){ fila.push(celda); celda = ''; }
+      else if(ch === '\n' || ch === '\r'){
+        if(ch === '\r' && texto[i+1] === '\n') i++;
+        fila.push(celda); celda = '';
+        if(fila.some(c => c !== '')) filas.push(fila);
+        fila = [];
+      }
+      else celda += ch;
+    }
+  }
+  fila.push(celda);
+  if(fila.some(c => c !== '')) filas.push(fila);
+  return filas;
+}
+
+/* ============================================================
+   NORMALIZADOR DE URLs DE IMAGEN
    ============================================================ */
 function normalizarUrlImagen(url){
   url = (url || "").trim();
   if(!url) return "";
 
-  // Google Drive: /file/d/ID/... , ?id=ID , /open?id=ID , uc?export=...&id=ID
   let m = url.match(/drive\.google\.com\/file\/d\/([\w-]{20,})/);
   if(!m) m = url.match(/drive\.google\.com\/(?:open|uc)\?(?:[^#]*&)?id=([\w-]{20,})/);
   if(m) return "https://lh3.googleusercontent.com/d/" + m[1];
 
-  // Google Photos / googleusercontent ya directos: se dejan igual
   if(/googleusercontent\.com/.test(url)) return url;
 
-  // Dropbox: cambiar dl=0 por raw=1 (entrega el archivo crudo)
   if(/dropbox\.com/.test(url)){
     url = url.replace(/[?&]dl=0/, "");
     return url + (url.includes("?") ? "&" : "?") + "raw=1";
   }
 
-  // OneDrive: agregar ?download=1 al enlace de compartir
   if(/1drv\.ms|onedrive\.live\.com/.test(url) && !/download=1/.test(url)){
     return url + (url.includes("?") ? "&" : "?") + "download=1";
   }
 
-  // postimages: si pegaron la página del visor en vez del enlace directo
   m = url.match(/postimg\.cc\/(?!.*\.(?:png|jpe?g|gif|webp))([\w]+)/i);
   if(m && !/i\.postimg\.cc/.test(url)){
-    // No se puede deducir el directo desde el visor; se avisa al usuario.
     return { aviso: "Ese es el enlace de la página de Postimages. Copia el que dice 'Direct link' (empieza con i.postimg.cc)." };
   }
 
-  // imgur: página del visor -> intentar versión directa
   m = url.match(/^https?:\/\/imgur\.com\/([\w]+)$/);
   if(m) return "https://i.imgur.com/" + m[1] + ".jpg";
 
-  return url; // cualquier otra URL se prueba tal cual
+  return url;
 }
 
 /* ============================================================
-   VISTA PREVIA con detección real: se intenta cargar la imagen
-   y si el navegador no puede pintarla, se avisa con el porqué.
+   VISTA PREVIA DE IMAGEN con detección real
    ============================================================ */
 const inputImagen = document.getElementById('f-imagen');
 const statusImg = document.getElementById('img-status');
 const previewImg = document.getElementById('img-preview');
-let urlValidada = ""; // solo se envía una imagen que pasó la prueba
+let urlValidada = "";
 
 function setStatus(texto, clase){
   statusImg.textContent = texto;
@@ -231,15 +517,14 @@ inputImagen.addEventListener('change', function(){
     return;
   }
   if(resultado !== this.value.trim()){
-    this.value = resultado; // muestra la URL ya corregida
+    this.value = resultado;
     setStatus('Enlace corregido automáticamente. Probando...', 'info');
   }
   probarImagen(resultado);
 });
 
 /* ============================================================
-   SUBIDA DIRECTA — plan B infalible: la foto se comprime en el
-   navegador y se guarda dentro del propio Netlify (Blobs).
+   SUBIDA DIRECTA DE IMAGEN (comprimida, a Netlify Blobs)
    ============================================================ */
 const btnSubir = document.getElementById('btn-subir');
 const inputArchivo = document.getElementById('f-archivo');
@@ -258,9 +543,7 @@ inputArchivo.addEventListener('change', async function(){
   btnSubir.textContent = 'Comprimiendo...';
 
   try{
-    // Comprimir: máx 1200px de lado, JPEG calidad 0.82
     const base64 = await comprimirImagen(archivo, 1200, 0.82);
-
     btnSubir.textContent = 'Subiendo...';
     const r = await fetch(API_IMAGENES, {
       method: 'POST',
@@ -269,7 +552,6 @@ inputArchivo.addEventListener('change', async function(){
     });
     const res = await r.json();
     if(!r.ok || !res.ok) throw new Error(res.error || 'Error al subir');
-
     inputImagen.value = res.url;
     probarImagen(res.url);
   }catch(e){
@@ -297,7 +579,7 @@ function comprimirImagen(archivo, maxLado, calidad){
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const dataUrl = canvas.toDataURL('image/jpeg', calidad);
-      resolve(dataUrl.split(',')[1]); // solo el base64, sin el prefijo
+      resolve(dataUrl.split(',')[1]);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
     img.src = url;
@@ -305,24 +587,24 @@ function comprimirImagen(archivo, maxLado, calidad){
 }
 
 /* ============================================================
-   CATÁLOGO (igual que antes)
+   CATÁLOGO
    ============================================================ */
 async function cargarProductos(){
   const cont = document.getElementById('lista-productos');
   try{
     const r = await fetch(API_URL, { mode:'cors' });
-    const productos = await r.json();
-    document.getElementById('total-count').textContent = productos.length;
-    if(!productos.length){
+    productosCache = await r.json();
+    document.getElementById('total-count').textContent = productosCache.length;
+    if(!productosCache.length){
       cont.innerHTML = '<div class="empty">Aún no hay productos</div>';
       return;
     }
-    cont.innerHTML = productos.map(p => `
+    cont.innerHTML = productosCache.map(p => `
       <div class="list-item">
         <div class="list-img" style="${p.imagen ? `background-image:url('${p.imagen}')` : ''}"></div>
         <div class="list-info">
           <div class="list-name">${p.nombre}</div>
-          <div class="list-sub">${p.categoria || 'General'}</div>
+          <div class="list-sub">${p.categoria || 'General'} · stock: ${p.stock ?? 0}</div>
         </div>
         <div class="list-price">$${Number(p.precio).toLocaleString('es-CO')}</div>
         <button class="del-btn" onclick="eliminarProducto('${p.id}')" title="Eliminar">✕</button>
@@ -348,7 +630,6 @@ document.getElementById('form-producto').addEventListener('submit', async functi
   const msg = document.getElementById('form-msg');
   const urlEscrita = inputImagen.value.trim();
 
-  // Si escribieron una URL pero no pasó la prueba, avisar antes de guardar
   if(urlEscrita && urlEscrita !== urlValidada){
     msg.textContent = 'La imagen no está verificada. Espera la marca ✓ o deja el campo vacío.';
     msg.className = 'msg err';
@@ -385,6 +666,7 @@ document.getElementById('form-producto').addEventListener('submit', async functi
   }
 });
 
+cargarCategorias();
 cargarProductos();
 </script>
 </body>
