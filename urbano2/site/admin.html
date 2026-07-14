@@ -107,6 +107,18 @@
     width:30px;height:30px;cursor:pointer;flex-shrink:0;
   }
   .del-btn:hover{background:var(--danger);color:#fff}
+  .edit-btn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    width:30px;height:30px;cursor:pointer;flex-shrink:0;
+  }
+  .edit-btn:hover{border-color:var(--neon-dim);color:var(--neon)}
+  .cancel-btn{
+    margin-top:8px;width:100%;padding:10px;background:transparent;color:var(--muted);
+    border:1px solid var(--line);font-size:12px;font-family:'JetBrains Mono',monospace;
+    letter-spacing:.5px;cursor:pointer;text-transform:uppercase;display:none;
+  }
+  .cancel-btn:hover{border-color:var(--danger);color:var(--danger)}
+  .panel.editando{border-color:var(--neon-dim)}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:30px;font-family:'JetBrains Mono',monospace}
   .config-note{
     background:var(--surface2);border:1px solid var(--line);padding:12px;font-size:11px;
@@ -126,8 +138,8 @@
 </div>
 
 <div class="wrap">
-  <div class="panel">
-    <h2>Nuevo producto</h2>
+  <div class="panel" id="panel-form">
+    <h2 id="form-titulo">Nuevo producto</h2>
     <form id="form-producto">
       <label>Nombre del producto *</label>
       <input type="text" id="f-nombre" required placeholder="Ej. Grinder metálico 4 piezas">
@@ -163,7 +175,8 @@
         <label for="f-destacado" style="text-transform:none;font-family:inherit">Marcar como "Nuevo" (destacado)</label>
       </div>
 
-      <button type="submit" class="submit-btn">Agregar al catálogo</button>
+      <button type="submit" class="submit-btn" id="btn-guardar">Agregar al catálogo</button>
+      <button type="button" class="cancel-btn" id="btn-cancelar">Cancelar edición</button>
       <div class="msg" id="form-msg"></div>
     </form>
   </div>
@@ -607,6 +620,7 @@ async function cargarProductos(){
           <div class="list-sub">${p.categoria || 'General'} · stock: ${p.stock ?? 0}</div>
         </div>
         <div class="list-price">$${Number(p.precio).toLocaleString('es-CO')}</div>
+        <button class="edit-btn" onclick="editarProducto('${p.id}')" title="Editar">✎</button>
         <button class="del-btn" onclick="eliminarProducto('${p.id}')" title="Eliminar">✕</button>
       </div>
     `).join('');
@@ -624,6 +638,54 @@ async function eliminarProducto(id){
     alert('No se pudo eliminar. Revisa la conexión con la API.');
   }
 }
+
+/* ============================================================
+   MODO EDICIÓN — el ✎ carga el producto al formulario;
+   guardar actualiza ese mismo producto en vez de crear otro.
+   ============================================================ */
+let editandoId = null;
+
+function editarProducto(id){
+  const p = productosCache.find(x => x.id === id);
+  if(!p) return;
+  editandoId = id;
+
+  document.getElementById('f-nombre').value = p.nombre || '';
+  if(p.categoria && !categoriasCache.includes(p.categoria)){
+    // categoría vieja que ya no está en la lista: se muestra igual para no perderla
+    categoriasCache.push(p.categoria);
+    pintarCategorias();
+  }
+  document.getElementById('f-categoria').value = p.categoria || 'Otro';
+  document.getElementById('f-precio').value = p.precio ?? '';
+  document.getElementById('f-stock').value = p.stock ?? '';
+  document.getElementById('f-descripcion').value = p.descripcion || '';
+  document.getElementById('f-destacado').checked = !!p.destacado;
+
+  inputImagen.value = p.imagen || '';
+  if(p.imagen) probarImagen(p.imagen);
+  else { urlValidada = ''; previewImg.style.display = 'none'; statusImg.className = 'img-status'; }
+
+  document.getElementById('form-titulo').textContent = 'Editando: ' + (p.nombre || 'producto');
+  document.getElementById('btn-guardar').textContent = 'Guardar cambios';
+  document.getElementById('btn-cancelar').style.display = 'block';
+  document.getElementById('panel-form').classList.add('editando');
+  document.getElementById('panel-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function salirModoEdicion(){
+  editandoId = null;
+  document.getElementById('form-producto').reset();
+  urlValidada = '';
+  previewImg.style.display = 'none';
+  statusImg.className = 'img-status';
+  document.getElementById('form-titulo').textContent = 'Nuevo producto';
+  document.getElementById('btn-guardar').textContent = 'Agregar al catálogo';
+  document.getElementById('btn-cancelar').style.display = 'none';
+  document.getElementById('panel-form').classList.remove('editando');
+}
+
+document.getElementById('btn-cancelar').addEventListener('click', salirModoEdicion);
 
 document.getElementById('form-producto').addEventListener('submit', async function(e){
   e.preventDefault();
@@ -646,19 +708,17 @@ document.getElementById('form-producto').addEventListener('submit', async functi
     destacado: document.getElementById('f-destacado').checked
   };
   try{
-    const r = await fetch(API_URL, {
-      method:'POST',
+    const esEdicion = !!editandoId;
+    const r = await fetch(esEdicion ? (API_URL + '/' + editandoId) : API_URL, {
+      method: esEdicion ? 'PUT' : 'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(producto)
     });
     if(!r.ok) throw new Error('error');
-    msg.textContent = 'Producto agregado al catálogo.';
+    msg.textContent = esEdicion ? 'Producto actualizado.' : 'Producto agregado al catálogo.';
     msg.className = 'msg ok';
-    this.reset();
-    urlValidada = "";
-    previewImg.style.display = 'none';
-    statusImg.className = 'img-status';
+    salirModoEdicion();
     cargarProductos();
   }catch(e){
     msg.textContent = 'No se pudo guardar. Revisa la conexión con la API del inventario.';
