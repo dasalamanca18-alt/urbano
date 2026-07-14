@@ -8,9 +8,17 @@ import { getStore } from "@netlify/blobs";
 const jsonHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Urbano-Clave",
   "Content-Type": "application/json"
 };
+
+
+// Si URBANO_CLAVE no está configurada en Netlify, no se exige (modo abierto).
+function claveOk(req) {
+  const esperada = process.env.URBANO_CLAVE;
+  if (!esperada) return true;
+  return req.headers.get("x-urbano-clave") === esperada;
+}
 
 export default async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,8 +50,11 @@ export default async (req) => {
       });
     }
 
-    // POST -> guardar imagen nueva (base64)
+    // POST -> guardar imagen nueva (base64) — exige clave
     if (req.method === "POST") {
+      if (!claveOk(req)) {
+        return new Response(JSON.stringify({ error: "Clave incorrecta o faltante" }), { status: 401, headers: jsonHeaders });
+      }
       const body = await req.json().catch(() => ({}));
       if (!body.data) {
         return new Response(JSON.stringify({ error: "Falta el campo data (base64)" }), { status: 400, headers: jsonHeaders });
